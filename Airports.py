@@ -8,8 +8,6 @@ class Airport():
         self.__Latitude = Latitude
         self.__Longitude = Longitude
     
-    def Airport_Info(self):
-        pass
     
     def MostFar_10Airports(self):
         pass
