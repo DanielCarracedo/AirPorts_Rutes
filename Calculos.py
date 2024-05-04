@@ -15,7 +15,7 @@ def haversine(lat1, lon1, lat2, lon2) -> float:
     return distancia
 
 
-def crear_matriz():
+def crear_df():
     # Read the CSV file into a DataFrame
     df = pd.read_csv('flights_final.csv')
 
@@ -32,6 +32,11 @@ def crear_matriz():
     # Reset the index after dropping duplicates
     df.reset_index(drop=True, inplace=True)
 
+    return df
+
+
+def crear_matriz():
+    df = crear_df()
     # Create a directed graph
     G = nx.Graph()
 
@@ -74,3 +79,7 @@ def save_edge_list_as_csv(G, filename):
 
 # Create the graph
 matriz = crear_matriz()
+
+
+def dijkstra():
+    pass
