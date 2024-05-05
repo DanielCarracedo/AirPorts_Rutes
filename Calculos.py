@@ -2,6 +2,7 @@ from math import radians, cos, sin, acos
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import heapq
 
 
 def haversine(lat1, lon1, lat2, lon2) -> float:
@@ -35,7 +36,7 @@ def crear_df():
     return df
 
 
-def crear_matriz():
+def crear_grafo():
     df = crear_df()
     # Create a directed graph
     G = nx.Graph()
@@ -77,9 +78,85 @@ def save_edge_list_as_csv(G, filename):
     edge_list_df.to_csv(filename, index=False)
 
 
-# Create the graph
-matriz = crear_matriz()
+def dijkstra(graph, source):
+
+    # Initialize distances to all nodes as infinity
+    distancias = {}
+    predecesores = {}
+
+    for node in graph.nodes():
+        distancias[node] = float('inf')
+        predecesores[node] = None
+
+    distancias[source] = 0
+
+    # Priority queue to store nodes with their tentative distances
+    queue = [(0, source)]
+
+    while queue:
+        current_distance, current_node = heapq.heappop(queue)
+
+        # Iterate over neighbors of the current node
+        for neighbor, edge_attrs in graph[current_node].items():
+            # Extract the weight of the edge
+            # Assuming default weight is 0 if not provided
+            weight = edge_attrs.get('weight', 0)
+
+            distance = current_distance + weight
+
+            # If the new distance is shorter than the current distance, update it
+            if distance < distancias[neighbor]:
+                distancias[neighbor] = distance
+                # Store predecessor for the shortest path
+                predecesores[neighbor] = current_node
+                heapq.heappush(queue, (distance, neighbor))
+
+    return distancias, predecesores
 
 
-def dijkstra():
-    pass
+def retrieve_path_nodes(source, destination, dijkstra):
+    for node, distance in dijkstra[0].items():
+        if node == destination:
+            print(f"Shortest distance from {source} to {node}: {distance}")
+
+    path = [destination]
+    predecesores = dijkstra[1].get(destination)
+    while predecesores is not None:
+        path.insert(0, predecesores)
+        predecesores = dijkstra[1].get(predecesores)
+    print(f"Shortest path from {source} to {destination}: {' -> '.join(path)}")
+
+
+def longest_paths(graph, source):
+    weights = [0] * 10
+    paths = [0] * 10
+    for nodes, distance in dijkstra[0].items():
+        if distance > min(weights):
+            if distance != float('inf'):
+                min_index = weights.index(min(weights))
+                # Replace the value at the minimum index with the new value
+                weights[min_index] = distance
+
+                path = [nodes]
+                predecesores = dijkstra[1].get(nodes)
+                while predecesores is not None:
+                    path.insert(0, predecesores)
+                    predecesores = dijkstra[1].get(predecesores)
+
+                paths[min_index] = path
+
+    for i, path in enumerate(paths):
+        if path:
+            print(
+                f"Longest path #{i + 1} from {source} to {path[-1]}: {' -> '.join(path)} and weights: {weights[i]}")
+
+
+grafo = crear_grafo()
+
+dijkstra = dijkstra(grafo, "COK")
+
+retrieve_path_nodes("COK", "SEZ", dijkstra)
+
+longest_paths(grafo, "COK")
+
+print(nx.dijkstra_path(grafo, "COK", "BBA"))
