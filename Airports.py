@@ -1,6 +1,10 @@
+import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 import sys
+import networkx as nx
+from math import inf
+from Calculos import crear_matriz
 
 class Airport():
     def __init__(self) -> None:
@@ -56,7 +60,9 @@ class Airport():
                     airport_code = input("Enter airport code: ").upper()
                     self.search_by_code(airport_code)
             elif Choise == 3:
-                pass
+                airport1 = input("Ingrese el código del primer aeropuerto: ").upper()
+                airport2 = input("Ingrese el código del segundo aeropuerto: ").upper()
+                self.shortest_path(airport1, airport2)
             elif Choise ==4:
                 Continue =False
             else:
@@ -103,9 +109,52 @@ class Airport():
         else:
             print("Airport not found!")
     
+     # Función para obtener la latitud y longitud de un aeropuerto dado su código
+    def get_airport_location(self, airport_code):
+        airport = self.data[self.data['Source Airport Code'] == airport_code].iloc[0]
+        latitude = airport['Source Airport Latitude']
+        longitude = airport['Source Airport Longitude']
+        return latitude, longitude
+    
     def MostFar_10Airports(self):
         pass
     
-    def Airports_min(self):
-        pass
+    # Función para obtener el camino más corto entre dos aeropuertos
+    def shortest_path(self, airport1, airport2):
+        G = crear_matriz()  # Obtener el grafo
+
+        try:
+            # Utilizar el algoritmo de Dijkstra para encontrar el camino más corto
+            shortest_path = nx.shortest_path(G, source=airport1, target=airport2, weight='weight')
+            # Obtener la información de los aeropuertos en el camino más corto
+            path_info = self.data[self.data['Source Airport Code'].isin(shortest_path)]
+
+            print("Shortest Path:")
+            visited = set() # Conjunto para mantener un registro de los aeropuertos visitados
+            filtered_path = [] # Lista para almacenar los aeropuertos en el camino más corto sin repetir
+            for _, airport in path_info.iterrows():
+                if airport['Source Airport Code'] not in visited:
+                    print(f"Aeropuerto: {airport['Source Airport Name']}, {airport['Source Airport Country']}")
+                    visited.add(airport['Source Airport Code'])
+                    filtered_path.append(airport)
+
+            # Obtener las coordenadas de los aeropuertos en el camino más corto sin repetir
+            path_coordinates = pd.DataFrame(filtered_path)[['Source Airport Latitude', 'Source Airport Longitude']]
+            
+            # Crear un mapa con los aeropuertos intermedios conectados por líneas
+            fig = go.Figure(go.Scattergeo(
+                lon = path_coordinates['Source Airport Longitude'],
+                lat = path_coordinates['Source Airport Latitude'],
+                mode = 'markers+lines',
+                line = dict(width = 2, color = 'red'),
+                marker = dict(size = 10, color = 'blue'),
+                text = pd.DataFrame(filtered_path)['Source Airport Name'] + ', ' + pd.DataFrame(filtered_path)['Source Airport Country']
+            ))
+            fig.update_geos(projection_type="orthographic", showland=True, landcolor="lightgray")
+            fig.show()
+
+        except nx.NetworkXNoPath:
+            print("No hay camino entre los aeropuertos seleccionados.")
+
+            
 airport_instance = Airport()
