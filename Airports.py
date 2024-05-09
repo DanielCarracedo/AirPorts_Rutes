@@ -46,8 +46,9 @@ class Airport():
             Choise = int(input("Que desea hacer?:"+"\n"+
                   "1. Mostrar mapa de todos los aeropuertos"+"\n"+
                   "2. Informacion del aeropuerto"+"\n"+
-                  "3. Camino minimo entre 2 aeropuertos"+"\n"+
-                  "4. Salir del programa"+"\n"))
+                  "3. Los 10 caminos minimos mas grandes del aeropuerto"+"\n"+
+                  "4. Camino minimo entre 2 aeropuertos"+"\n"+
+                  "5. Salir del programa"+"\n"))
             if Choise == 1:
                 self.fig.show()
             elif Choise==2:
@@ -59,13 +60,15 @@ class Airport():
                     # Solicitar al usuario que ingrese el código del aeropuerto
                     airport_code = input("Enter airport code: ").upper()
                     self.search_by_code(airport_code)
-                    print("\n")
-                    self.MostFar_10Airports(airport_code)
-            elif Choise == 3:
+            elif Choise==3:
+                # Solicitar al usuario que ingrese el código del aeropuerto
+                airport_code = input("Enter airport code: ").upper()
+                self.MostFar_10Airports(airport_code)
+            elif Choise == 4:
                 airport1 = input("Ingrese el código del primer aeropuerto: ").upper()
                 airport2 = input("Ingrese el código del segundo aeropuerto: ").upper()
                 self.shortest_path(airport1, airport2)
-            elif Choise ==4:
+            elif Choise ==5:
                 Continue =False
             else:
                 print("Por Favor, USAR UNA DE LAS OPCIONES VALIDAS")
@@ -113,12 +116,6 @@ class Airport():
         else:
             print("Airport not found!")
     
-     # Función para obtener la latitud y longitud de un aeropuerto dado su código
-    def get_airport_location(self, airport_code):
-        airport = self.data[self.data['Source Airport Code'] == airport_code].iloc[0]
-        latitude = airport['Source Airport Latitude']
-        longitude = airport['Source Airport Longitude']
-        return latitude, longitude
     
     def plot_airports_on_map(self, airports):
         # Filtrar los datos para obtener solo los aeropuertos seleccionados
@@ -152,25 +149,28 @@ class Airport():
             return
 
         try:
+            dijkstra(G, airport)
             longest_paths_result = longest_paths(G, airport)
             longest_paths_result = sorted(longest_paths_result, key=lambda x: x[1], reverse=True)[:10]
-
+            
             
             farthest_airports = [path[-1] for path in longest_paths_result]
             print(farthest_airports)
+                
+
 
             # Mostrar los 10 nodos más lejanos en un mapa
             self.plot_airports_on_map(farthest_airports)
-
+                
         except KeyError:
             print("Error: No se encontró una ruta válida.")
     
     def shortest_path(self, airport1, airport2):
         G = crear_grafo()
-        distancias, predecesores = dijkstra(G, airport1)
+        distancias, predecesores = dijkstra(G, airport1.strip())  # Eliminar espacios en blanco alrededor del código del aeropuerto
 
         # Verificar si ambos aeropuertos están en el grafo
-        if airport1 not in G.nodes or airport2 not in G.nodes:
+        if airport1.strip() not in G.nodes or airport2.strip() not in G.nodes:  # Eliminar espacios en blanco alrededor del código del aeropuerto
             print("Al menos uno de los aeropuertos no está en el grafo.")
             return
 
@@ -178,9 +178,11 @@ class Airport():
             shortest_distance = distancias[airport2]
             print(f"La distancia más corta entre {airport1} y {airport2} es: {shortest_distance} km")
 
-            retrieve_path_nodes(airport1, airport2, (distancias, predecesores))
-
-            shortest_path_result = nx.dijkstra_path(G, airport1, airport2, weight='weight')
+            shortest_path_result = [airport2]
+            while airport2 != airport1:
+                airport2 = predecesores[airport2]
+                shortest_path_result.append(airport2)
+            shortest_path_result.reverse()
 
             # Filtrar los datos para obtener solo los aeropuertos en el camino más corto
             data_shortest_path = self.data[self.data['Source Airport Code'].isin(shortest_path_result)]
@@ -202,6 +204,29 @@ class Airport():
                                             'Latitude: %{customdata[5]}<br>' +
                                             'Longitude: %{customdata[6]}')
 
+            # Agregar la línea de la ruta más corta
+            edge_x = []
+            edge_y = []
+            last_airport = shortest_path_result[0]
+            for airport in shortest_path_result[1:]:
+                edge_x.append(data_shortest_path[data_shortest_path['Source Airport Code'] == last_airport]['Source Airport Longitude'].iloc[0])
+                edge_x.append(data_shortest_path[data_shortest_path['Source Airport Code'] == airport]['Source Airport Longitude'].iloc[0])
+                edge_x.append(None)
+                edge_y.append(data_shortest_path[data_shortest_path['Source Airport Code'] == last_airport]['Source Airport Latitude'].iloc[0])
+                edge_y.append(data_shortest_path[data_shortest_path['Source Airport Code'] == airport]['Source Airport Latitude'].iloc[0])
+                edge_y.append(None)
+                last_airport = airport
+            
+            fig.add_trace(go.Scattergeo(
+                lon=edge_x,
+                lat=edge_y,
+                mode='lines',
+                line=dict(width=2, color='red'),
+                name='Shortest Path',
+                hoverinfo='none'
+            ))
+
+            # Agregar los nodos del camino más corto
             fig.add_trace(go.Scattergeo(
                 lon=data_shortest_path['Source Airport Longitude'],
                 lat=data_shortest_path['Source Airport Latitude'],
@@ -219,15 +244,6 @@ class Airport():
                         data_shortest_path['Source Airport Latitude'],
                         data_shortest_path['Source Airport Longitude']
                     )]
-            ))
-
-            # Agregar la línea de la ruta más corta
-            fig.add_trace(go.Scattergeo(
-                lon=data_shortest_path['Source Airport Longitude'],
-                lat=data_shortest_path['Source Airport Latitude'],
-                mode='lines',
-                line=dict(width=2, color='red'),
-                name='Shortest Path'
             ))
 
             fig.show()

@@ -130,7 +130,9 @@ def retrieve_path_nodes(source, destination, dijkstra):
 def longest_paths(graph, source):
     weights = [0] * 10
     paths = [0] * 10
-    for nodes, distance in dijkstra_[0].items():
+    dijk = dijkstra(graph, source)
+
+    for nodes, distance in dijk[0].items():
         if distance > min(weights):
             if distance != float('inf'):
                 min_index = weights.index(min(weights))
@@ -138,27 +140,16 @@ def longest_paths(graph, source):
                 weights[min_index] = distance
 
                 path = [nodes]
-                predecesores = dijkstra_[1].get(nodes)
+                predecesores = dijk[1].get(nodes)
                 while predecesores is not None:
                     path.insert(0, predecesores)
-                    predecesores = dijkstra_[1].get(predecesores)
+                    predecesores = dijk[1].get(predecesores)
 
                 paths[min_index] = path
 
     for i, path in enumerate(paths):
         if path:
             print(
-                f"Longest path #{i + 1} from {source} to {path[-1]}: {' -> '.join(path)} and weights: {weights[i]}")
+                f"El camino mas largo #{i + 1} desde {source} a {path[-1]}: {' -> '.join(path)} y su peso es: {weights[i]}")
     
     return paths
-
-
-grafo = crear_grafo()
-
-dijkstra_ = dijkstra(grafo, "COK")
-
-retrieve_path_nodes("MEM", "SYD", dijkstra_)
-
-longest_paths(grafo, "COK")
-
-print(nx.dijkstra_path(grafo, "COK", "BBA"))
